@@ -14,6 +14,11 @@ deepeval = 'deepeval.cli.main:app'
 [tool.poetry.plugins."pytest11"]
 plugins = "deepeval.plugins.plugin"
 
+[[tool.poetry.source]]
+name = "torch"
+url = "https://download.pytorch.org/whl/cpu/"
+priority = "explicit"
+
 [tool.poetry.dependencies]
 python = ">=3.9,<3.12"
 requests = "^2.31.0"
@@ -50,6 +55,14 @@ opentelemetry-exporter-otlp-proto-grpc = "^1.24.0"
 grpcio = "^1.63.0"
 instructor = "*"
 twine="5.1.1"
+openpyxl="^3.1.2"
+transformers = "^4.45.2"
+torch = [
+     {version = "^2.0.1", platform = "darwin", source = "PyPI"},
+     {version = "^2.0.1+cpu", platform = "linux", source = "torch"}
+]
+accelerate = "^0.26.0"
+anthropic = "^0.36.0"
 
 [tool.black]
 line-length = 80
