@@ -28,7 +28,8 @@ pipx ensurepath
 poetry.lock 파일 삭제 후, poetry를 install하여 필요한 패키지를 설치하세요.
 
 ```bash
-poetry install
+poetry install            # 최초 패키지 설치 시
+poetry add [필요한 패키지명]  # 추가할 패키지 발생 시
 ```
 
 ### 인터프리터 변경

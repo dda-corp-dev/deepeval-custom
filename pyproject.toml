@@ -63,6 +63,7 @@ torch = [
 ]
 accelerate = "^0.26.0"
 anthropic = "^0.36.0"
+deepl = "^1.19.1"
 
 [tool.black]
 line-length = 80

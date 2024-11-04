@@ -30,6 +30,8 @@ class KeyValues(Enum):
     USE_LOCAL_EMBEDDINGS = "USE_LOCAL_EMBEDDINGS"
     # DDA custom
     ANTHROPIC_API_KEY = "ANTHROPIC_API_KEY"
+    # DeepL
+    DEEPL_AUTH_KEY = "DEEPL_AUTH_KEY"
 
 
 class KeyFileHandler:
