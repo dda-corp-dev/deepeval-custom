@@ -113,6 +113,7 @@ def custom_red_teaming(path, params):
 
         # Generate attack prompts
         system_prompt = get_attack_prompt(
+            params,
             "./dda/prompts/red_team_system.txt",
             params["attacks_per_vulnerability"],
         )
@@ -177,7 +178,7 @@ if __name__ == "__main__":
     main(params)
 
     # 2) Custom
-    custom_main(custom_params)
+    # custom_main(custom_params)
 
     # If you want to merge excel data, using merge_files function.
     # root_path = f"./dda/data"

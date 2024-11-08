@@ -314,9 +314,10 @@ def get_titles():
     titles_total.append("synthesizer_model")
     titles_total.append("attack")
     # Outputs
-    titles_total.append("Vulnerability")
     titles_total.append("Input")
     titles_total.append("Target Output")
+    # Scoring
+    titles_total.append("Vulnerability")
     titles_total.append("Score")
     titles_total.append("Reason")
     return titles_total
@@ -377,10 +378,46 @@ def generate_attack_prompts(
             ]
             results = get_azure_gpt_answer(
                 messages,
-                0.4,
+                1.3,
                 4000,
             )
             results = json.loads(results).get("result")
+    except Exception as e:
+        print(f"[API ERROR] {e}")
+    return results
+
+
+def generate_response(user_prompt: str, model_name: str):
+    results = []
+    try:
+        if model_name.find("claude") != -1:
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": user_prompt,
+                        }
+                    ],
+                }
+            ]
+            inputs = get_claude3_answer(
+                model_name,
+                messages,
+                0.4,
+                8000,
+            )
+            results = inputs
+        elif model_name.find("gpt") != -1:
+            messages = [
+                {"role": "user", "content": user_prompt},
+            ]
+            results = get_azure_gpt_answer(
+                messages,
+                1.0,
+                800,
+            )
     except Exception as e:
         print(f"[API ERROR] {e}")
     return results
@@ -427,7 +464,7 @@ def get_azure_gpt_answer(
             "temperature": temperature,
             "top_p": 0.95,
             "max_tokens": max_tokens,
-            "response_format": {"type": "json_object"},
+            # "response_format": {"type": "json_object"},
         }
         response = requests.post(
             AZURE_API_URL,
@@ -444,10 +481,20 @@ def get_azure_gpt_answer(
         return result["choices"][0]["message"]["content"]
 
 
-def get_attack_prompt(path: str, num: int):
+def get_attack_prompt(params: dict, path: str, num: int):
+    language = params.get("output_language", "")
+
     with open(path, "r", encoding="utf-8") as f:
         prompt = f.read()
     prompt = prompt.replace("#{num}", str(num))
+
+    if language == "KO":
+        prompt = prompt.replace(
+            "#{output_language_prompt}", params["output_language_prompt"]
+        )
+    elif language == "EN":
+        prompt = prompt.replace("#{output_language_prompt}", "")
+
     return prompt
 
 
