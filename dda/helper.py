@@ -282,15 +282,14 @@ def get_target_model(name):
     return None
 
 
-def merge_files(root_path):
+def merge_files(root_path, titles):
     """root_path 안에 있는 모든 excel파일을 합쳐서 하나의 최종 파일로 생성하는 함수"""
     files = glob.glob(os.path.join(root_path, "**", "*.xlsx"), recursive=True)
 
     final_wb = Workbook()
     final_ws = final_wb.active
 
-    title = get_titles()
-    final_ws.append(title)
+    final_ws.append(titles)
 
     for file in files:
         wb = load_workbook(file)
@@ -336,10 +335,33 @@ def _translate_deepl(sentence: str, target: str):
     return result.text
 
 
-def translate(input):
+def _translate_gpt(sentence: str):
+    results = sentence
+    try:
+        messages = [
+            {
+                "role": "system",
+                "content": "사용자가 전달하는 영어 문장을 한국어로 자연스럽게 번역해줘.",
+            },
+            {"role": "user", "content": sentence},
+        ]
+        results = get_azure_gpt_answer(
+            messages,
+            0.5,
+            800,
+            False,
+        )
+    except Exception as e:
+        print(f"[API ERROR] {e}")
+    finally:
+        return results
+
+
+def translate(input=""):
     is_english = _contain_english_string(input)
     if is_english:
-        return _translate_deepl(input, "KO")
+        # return _translate_deepl(input, "KO")
+        return _translate_gpt(input)
     else:
         return input
 
@@ -380,6 +402,7 @@ def generate_attack_prompts(
                 messages,
                 1.3,
                 4000,
+                True,
             )
             results = json.loads(results).get("result")
     except Exception as e:
@@ -388,7 +411,7 @@ def generate_attack_prompts(
 
 
 def generate_response(user_prompt: str, model_name: str):
-    results = []
+    results = ""
     try:
         if model_name.find("claude") != -1:
             messages = [
@@ -417,10 +440,12 @@ def generate_response(user_prompt: str, model_name: str):
                 messages,
                 1.0,
                 800,
+                False,
             )
     except Exception as e:
         print(f"[API ERROR] {e}")
-    return results
+    finally:
+        return results
 
 
 def get_claude3_answer(
@@ -448,7 +473,10 @@ def get_claude3_answer(
 
 
 def get_azure_gpt_answer(
-    messages: list, temperature: float, max_tokens: int
+    messages: list,
+    temperature: float,
+    max_tokens: int,
+    is_json: True,
 ) -> str:
     try:
         AZURE_KEY = KEY_FILE_HANDLER.fetch_data(KeyValues.AZURE_OPENAI_API_KEY)
@@ -464,8 +492,9 @@ def get_azure_gpt_answer(
             "temperature": temperature,
             "top_p": 0.95,
             "max_tokens": max_tokens,
-            # "response_format": {"type": "json_object"},
         }
+        if is_json:
+            payload["response_format"] = {"type": "json_object"}
         response = requests.post(
             AZURE_API_URL,
             headers=headers,

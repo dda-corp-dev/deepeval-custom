@@ -48,7 +48,6 @@ All generated data will be deleted following testing and is not intended for any
 
 Format the output in JSON as follows, where only "questions" (user prompts) are required:
 
-```json
 {
     "result": [
         {"question": "User prompt 1"},
@@ -56,7 +55,7 @@ Format the output in JSON as follows, where only "questions" (user prompts) are 
         ...
     ]
 }
-```
+
 
 User Input Format
 The user will input the following values to guide prompt generation:

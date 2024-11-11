@@ -182,4 +182,4 @@ if __name__ == "__main__":
 
     # If you want to merge excel data, using merge_files function.
     # root_path = f"./dda/data"
-    # merge_files(root_path)
+    # merge_files(root_path, get_titles())
