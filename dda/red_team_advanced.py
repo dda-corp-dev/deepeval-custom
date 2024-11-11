@@ -14,6 +14,7 @@ from deepeval.metrics.red_teaming_metrics import *
 from deepeval.models.gpt_model_schematic import SchematicGPTModel
 from deepeval.red_teaming import Vulnerability
 from deepeval.test_case import LLMTestCase
+from tqdm import tqdm
 
 
 def _get_advanced_titles(params: dict):
@@ -58,7 +59,7 @@ def _save_input_results(path: str, params: dict, results: list):
             "basic adversarial prompts, prompt probing, prompt injection, jailbreak (including linear, tree, and crescendo types)",
             question,
         ]
-        print(line)
+        # print(line)
         write_ws.append(line)
     write_wb.save(path)
 
@@ -89,6 +90,9 @@ def generate_input_prompts(path: str, params: dict):
 
     if len(results) >= 0:
         _save_input_results(path, params, results)
+        print("\n☻ [STEP1 FINISHED] Successfully generated input prompts.\n")
+    else:
+        raise Exception("\n☹︎ Failed to generate input prompts.")
 
 
 def generate_outputs(path: str, params: dict):
@@ -98,15 +102,20 @@ def generate_outputs(path: str, params: dict):
     )
     load_ws = load_wb["Sheet"]
 
-    for idx, row in enumerate(load_ws.iter_rows(min_row=2)):
-        input = row[9].value
-        if params["output_language"] == "EN":
-            input += " Please respond within 500 characters."
-        else:
-            input += " 500자 이내로 답변해줘."
-        row[10].value = generate_response(input, params["target_model"])
-        print(f"{idx} {input} completed!")
-    load_wb.save(path)    
+    total_rows = sum(1 for _ in load_ws.iter_rows(min_row=2))
+    with tqdm(total=total_rows, desc="Generating Outputs", ncols=100, bar_format="{l_bar}{bar} [Elapsed: {elapsed} | Remaining: {remaining}]", colour='blue') as pbar:
+        for idx, row in enumerate(load_ws.iter_rows(min_row=2)):
+            input = row[9].value
+            if params["output_language"] == "EN":
+                input += " Please respond within 500 characters."
+            else:
+                input += " 500자 이내로 답변해줘."
+            row[10].value = generate_response(input, params["target_model"])
+            
+            pbar.update(1)
+
+    load_wb.save(path)
+    print("☻ [STEP2 FINISHED] Successfully generated outputs.\n")
 
 
 def generate_scoring(path: str, params: dict):
@@ -128,35 +137,34 @@ def generate_scoring(path: str, params: dict):
         return translate(text) if params["output_language"] == "KO" else text
 
     try:
-        for idx, row in enumerate(load_ws.iter_rows(min_row=2)):
-            input = row[9].value
-            output = row[10].value
-
-            if output:
-                test_case = LLMTestCase(
-                    input=input,
-                    actual_output=output,
-                )
-
-                if any(row[i].value is None for i in range(12, 19, 2)):
-                    for i, (key, grader) in zip(range(11, 19, 2), graders.items()):
-                        grader.measure(test_case)
-                        row[i].value = grader.score
-                        row[i + 1].value = translate_if_needed(grader.reason)
-
-            print(f"{idx} {input} Completed.")
+        total_rows = sum(1 for _ in load_ws.iter_rows(min_row=2))
+        with tqdm(total=total_rows, desc="Scoring Progress", ncols=100, bar_format="{l_bar}{bar} [Elapsed: {elapsed} | Remaining: {remaining}]", colour='blue') as pbar:
+            for idx, row in tqdm(enumerate(load_ws.iter_rows(min_row=2))):
+                input = row[9].value
+                output = row[10].value
+                if output:
+                    test_case = LLMTestCase(
+                        input=input,
+                        actual_output=output,
+                    )
+                    if any(row[i].value is None for i in range(12, 19, 2)):
+                        for i, (key, grader) in zip(range(11, 19, 2), graders.items()):
+                            grader.measure(test_case)
+                            row[i].value = grader.score
+                            row[i + 1].value = translate_if_needed(grader.reason)
+                pbar.update(1)
+        print("☻ [STEP3 FINISHED] Scoring has been successfully completed.\n")
     except Exception as e:
-        print(f"Generate_scoring error occured. msg: {e}")
+        print(f"☹︎ An error occurred during scoring. msg: {e}")
+        print("☹︎ [STEP3 UNFINISHED] The scoring has ended unsatisfactorily. Please run generate_scoring again.\n")
     finally:
         load_wb.save(path)
 
 
 def advanced_main(params):
     now = datetime.now().strftime("%y%m%d%H%M")
-    file_name = (
-        f"{now}_{params['output_language']}_breakdown_{params['category']}"
-    )
-    # file_name = "2411111448_KO_breakdown_Violations of human rights"
+    file_name = (f"{now}_{params['output_language']}_breakdown_{params['category']}")
+    # file_name = "2411111619_EN_breakdown_Violations of human rights"
     path = f"./dda/data/{file_name}.xlsx"
 
     generate_input_prompts(path, params)
